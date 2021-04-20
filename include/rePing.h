@@ -6,8 +6,8 @@
    kotyara12@yandex.ru | https://kotyara12.ru | tg: @kotyara1971
 */
 
-#ifndef __RPING32_H__
-#define __RPING32_H__
+#ifndef __RE_PING_H__
+#define __RE_PING_H__
 
 #include <stddef.h>
 #include <stdint.h>
@@ -53,4 +53,4 @@ ping_inet_t pingCheckInternet();
 }
 #endif
 
-#endif // __RPING32_H__
+#endif // __RE_PING_H__

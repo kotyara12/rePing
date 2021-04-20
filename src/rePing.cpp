@@ -1,4 +1,4 @@
-#include "rPing32.h"
+#include "rePing.h"
 #include "rLog.h"
 #include <stdio.h>
 #include <string.h>
