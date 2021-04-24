@@ -107,6 +107,8 @@ ping_result_t pingBlocked(const char* hostname,
 
   // Configuring ping
   esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
+  ping_config.task_stack_size = CONFIG_INTERNET_PING_TASK_STACK_SIZE;
+  ping_config.task_prio = CONFIG_INTERNET_PING_TASK_PRIORITY;
   ping_config.target_addr = target_addr;
   ping_config.interval_ms = interval;
   ping_config.timeout_ms = timeout;
