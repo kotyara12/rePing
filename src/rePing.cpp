@@ -273,13 +273,6 @@ bool rPinger::publishCustomValues()
 {
   bool ret = rSensor::publishCustomValues();
 
-  #if CONFIG_SENSOR_DEWPOINT_ENABLE
-    if ((ret) && (_item1) && (_item2)) {
-      ret = _item2->publishDataValue(CONFIG_SENSOR_DEWPOINT, 
-        calcDewPoint(_item2->getValue().filteredValue, _item1->getValue().filteredValue));
-    };
-  #endif // CONFIG_SENSOR_DEWPOINT_ENABLE
-
   return ret;
 } 
 
@@ -289,14 +282,6 @@ bool rPinger::publishCustomValues()
 
 char* rPinger::jsonCustomValues()
 {
-  #if CONFIG_SENSOR_DEWPOINT_ENABLE
-    if ((_item1) && (_item2)) {
-      char * _dew_point = _item2->jsonDataValue(calcDewPoint(_item2->getValue().filteredValue, _item1->getValue().filteredValue));
-      char * ret = malloc_stringf("\"%s\":%s", CONFIG_SENSOR_DEWPOINT, _dew_point);
-      if (_dew_point) free(_dew_point);
-      return ret;  
-    };
-  #endif // CONFIG_SENSOR_DEWPOINT_ENABLE
   return nullptr;
 }
 
