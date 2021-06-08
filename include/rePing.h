@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "project_config.h"
-#include "rSensor.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,27 +48,6 @@ typedef struct {
 ping_inet_t pingCheckInternet();
 
 #endif // CONFIG_INTERNET_PING_ENABLE
-
-class rPinger: public rSensorX2 {
-  public:
-    rPinger();  
-  protected:
-    void createSensorItems(
-      // Timeout
-      const sensor_filter_t filterMode1, const uint16_t filterSize1, 
-      // Packet loss
-      const sensor_filter_t filterMode2, const uint16_t filterSize2) override;
-    void registerItemsParameters(paramsGroupHandle_t parent_group) override;
-    #if CONFIG_SENSOR_DISPLAY_ENABLED
-    void initDisplayMode() override;
-    #endif // CONFIG_SENSOR_DISPLAY_ENABLED
-    #if CONFIG_SENSOR_AS_PLAIN
-    bool publishCustomValues() override; 
-    #endif // CONFIG_SENSOR_AS_PLAIN
-    #if CONFIG_SENSOR_AS_JSON
-    char* jsonCustomValues() override; 
-    #endif // CONFIG_SENSOR_AS_JSON
-};
 
 #ifdef __cplusplus
 }
