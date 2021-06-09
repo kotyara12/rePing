@@ -19,16 +19,11 @@ extern "C" {
 #endif
 
 typedef struct {
-  uint32_t transmitted;
-  uint32_t received;
   uint32_t duration;
   float loss; 
-  bool available;
 } ping_result_t;
 
-ping_result_t pingHost(const char* hostname, 
-  const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize,
-  const float max_loss, const uint32_t max_duration);
+ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize);
 
 #if CONFIG_INTERNET_PING_ENABLE
 
@@ -43,6 +38,7 @@ typedef struct {
   ping_result_t host3;
   #endif // CONFIG_INTERNET_PING_HOST_3
   ping_result_t internet;
+  bool available;
 } ping_inet_t;
 
 ping_inet_t pingCheckInternet();

@@ -15,8 +15,6 @@
 static const char* tagPING = "PING";
 
 typedef struct {
-  float max_loss;
-  uint32_t max_duration;
   ping_result_t result;
   EventGroupHandle_t lock = nullptr;
 } ping_lock_t;
@@ -54,37 +52,32 @@ static void pingOnTimeout(esp_ping_handle_t hdl, void *args)
 static void pingOnEnd(esp_ping_handle_t hdl, void *args)
 {
   ip_addr_t target_addr;
+  uint32_t transmitted = 0;
+  uint32_t received = 0;
   ping_handle_t data = (ping_handle_t)args;
   // We get the results
   esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &target_addr, sizeof(target_addr));
-  esp_ping_get_profile(hdl, ESP_PING_PROF_REQUEST, &data->result.transmitted, sizeof(uint32_t));
-  esp_ping_get_profile(hdl, ESP_PING_PROF_REPLY, &data->result.received, sizeof(uint32_t));
+  esp_ping_get_profile(hdl, ESP_PING_PROF_REQUEST, &transmitted, sizeof(uint32_t));
+  esp_ping_get_profile(hdl, ESP_PING_PROF_REPLY, &received, sizeof(uint32_t));
   esp_ping_get_profile(hdl, ESP_PING_PROF_DURATION, &data->result.duration, sizeof(uint32_t));
   // Calculating loss and average response time
   data->result.loss = 0;
-  if (data->result.transmitted > 0) {
-    data->result.loss = (float)((1 - ((float)data->result.received) / data->result.transmitted) * 100);
+  if (transmitted > 0) {
+    data->result.duration = data->result.duration / transmitted;
+    data->result.loss = (float)((1 - ((float)received) / transmitted) * 100);
   };
-  if (data->result.transmitted > 0) {
-    data->result.duration = data->result.duration / data->result.transmitted;
-  };
-  data->result.available = (data->result.loss < data->max_loss) && (data->result.duration < data->max_duration);
   // Display log
   rlog_i(tagPING, "Ping statistics for [%s]: %d packets transmitted, %d received, %.1f%% packet loss, average time %d ms",
-    ipaddr_ntoa((ip_addr_t*)&target_addr), data->result.transmitted, data->result.received, data->result.loss, data->result.duration);
+    ipaddr_ntoa((ip_addr_t*)&target_addr), transmitted, received, data->result.loss, data->result.duration);
   // Set the flag that the ping is complete
   if (data->lock) xEventGroupSetBits(data->lock, BIT0);
 }
 
-ping_result_t pingHost(const char* hostname, 
-  const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize,
-  const float max_loss, const uint32_t max_duration)
+ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize)
 {
   // Buffer for results
   ping_lock_t result;
   memset(&result.result, 0, sizeof(ping_result_t));
-  result.max_loss = max_loss;
-  result.max_duration = max_duration;
   result.lock = xEventGroupCreate();
   if (!result.lock) {
     rlog_e(tagPING, "Failed to create lock object!");
@@ -160,46 +153,34 @@ ping_inet_t pingCheckInternet()
 {
   ping_inet_t ret;
   rlog_i(tagPING, "Checking access to the Internet ...");
-  ret.internet.available = false;
-  ret.internet.transmitted = 0;
-  ret.internet.received = 0;
   ret.internet.duration = 0;
   ret.internet.loss = 0;
 
   #ifdef CONFIG_INTERNET_PING_HOST_1
     ret.host1 = pingHost(CONFIG_INTERNET_PING_HOST_1,
-      CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE, 
-      CONFIG_INTERNET_PING_SESSION_LOSS_MAX, CONFIG_INTERNET_PING_SESSION_TIME_MAX);
-    ret.internet.available |= ret.host1.available;
-    ret.internet.transmitted += ret.host1.transmitted;
-    ret.internet.received += ret.host1.received;
-    ret.internet.loss = ret.host1.loss;
+      CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
     ret.internet.duration = ret.host1.duration;
+    ret.internet.loss = ret.host1.loss;
     
     #ifdef CONFIG_INTERNET_PING_HOST_2
       ret.host2 = pingHost(CONFIG_INTERNET_PING_HOST_2,
-        CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE, 
-        CONFIG_INTERNET_PING_SESSION_LOSS_MAX, CONFIG_INTERNET_PING_SESSION_TIME_MAX);
-      ret.internet.available |= ret.host2.available;
-      ret.internet.transmitted += ret.host2.transmitted;
-      ret.internet.received += ret.host2.received;
-      ret.internet.loss = (ret.host1.loss + ret.host2.loss) / 2;
+        CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
       ret.internet.duration = (ret.host1.duration + ret.host2.duration) / 2;
+      ret.internet.loss = (ret.host1.loss + ret.host2.loss) / 2;
       
       #ifdef CONFIG_INTERNET_PING_HOST_3
         ret.host3 = pingHost(CONFIG_INTERNET_PING_HOST_3,
-          CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE, 
-          CONFIG_INTERNET_PING_SESSION_LOSS_MAX, CONFIG_INTERNET_PING_SESSION_TIME_MAX);
-        ret.internet.available |= ret.host3.available;
-        ret.internet.transmitted += ret.host3.transmitted;
-        ret.internet.received += ret.host3.received;
-        ret.internet.loss = (ret.host1.loss + ret.host2.loss + ret.host3.loss) / 3;
+          CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
         ret.internet.duration = (ret.host1.duration + ret.host2.duration + ret.host3.duration) / 3;
+        ret.internet.loss = (ret.host1.loss + ret.host2.loss + ret.host3.loss) / 3;
       #endif // CONFIG_INTERNET_PING_HOST_3
     #endif // CONFIG_INTERNET_PING_HOST_2
   #endif // CONFIG_INTERNET_PING_HOST_1
 
-  if (ret.internet.available) {
+  ret.available = (ret.internet.duration < CONFIG_INTERNET_PING_SESSION_TIME_MAX) 
+               && (ret.internet.loss < CONFIG_INTERNET_PING_SESSION_LOSS_MAX);
+
+  if (ret.available) {
     rlog_i(tagPING, "Internet access is available");
   } else {
     rlog_e(tagPING, "Internet access is not available!");
