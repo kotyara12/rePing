@@ -155,25 +155,25 @@ ping_inet_t pingCheckInternet()
   rlog_i(tagPING, "Checking access to the Internet ...");
   ret.internet.duration = 0;
   ret.internet.loss = 0;
-
+  
   #ifdef CONFIG_INTERNET_PING_HOST_1
     ret.host1 = pingHost(CONFIG_INTERNET_PING_HOST_1,
       CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
-    ret.internet.duration = ret.host1.duration;
-    ret.internet.loss = ret.host1.loss;
-    
     #ifdef CONFIG_INTERNET_PING_HOST_2
       ret.host2 = pingHost(CONFIG_INTERNET_PING_HOST_2,
         CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
-      ret.internet.duration = (ret.host1.duration + ret.host2.duration) / 2;
-      ret.internet.loss = (ret.host1.loss + ret.host2.loss) / 2;
-      
       #ifdef CONFIG_INTERNET_PING_HOST_3
         ret.host3 = pingHost(CONFIG_INTERNET_PING_HOST_3,
           CONFIG_INTERNET_PING_SESSION_COUNT, CONFIG_INTERNET_PING_SESSION_INTERVAL, CONFIG_INTERNET_PING_SESSION_TIMEOUT, CONFIG_INTERNET_PING_SESSION_DATASIZE);
         ret.internet.duration = (ret.host1.duration + ret.host2.duration + ret.host3.duration) / 3;
         ret.internet.loss = (ret.host1.loss + ret.host2.loss + ret.host3.loss) / 3;
+      #else
+        ret.internet.duration = (ret.host1.duration + ret.host2.duration) / 2;
+        ret.internet.loss = (ret.host1.loss + ret.host2.loss) / 2;
       #endif // CONFIG_INTERNET_PING_HOST_3
+    #else
+      ret.internet.duration = ret.host1.duration;
+      ret.internet.loss = ret.host1.loss;
     #endif // CONFIG_INTERNET_PING_HOST_2
   #endif // CONFIG_INTERNET_PING_HOST_1
 
