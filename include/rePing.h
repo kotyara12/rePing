@@ -24,29 +24,3 @@ typedef struct {
 } ping_result_t;
 
 ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize);
-
-#if CONFIG_INTERNET_PING_ENABLE
-
-typedef struct {
-  #ifdef CONFIG_INTERNET_PING_HOST_1
-  ping_result_t host1;
-  #endif // CONFIG_INTERNET_PING_HOST_1
-  #ifdef CONFIG_INTERNET_PING_HOST_2
-  ping_result_t host2;
-  #endif // CONFIG_INTERNET_PING_HOST_2
-  #ifdef CONFIG_INTERNET_PING_HOST_3
-  ping_result_t host3;
-  #endif // CONFIG_INTERNET_PING_HOST_3
-  ping_result_t internet;
-  bool available;
-} ping_inet_t;
-
-ping_inet_t pingCheckInternet();
-
-#endif // CONFIG_INTERNET_PING_ENABLE
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // __RE_PING_H__
