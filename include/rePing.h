@@ -24,3 +24,9 @@ typedef struct {
 } ping_result_t;
 
 ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // __RE_PING_H__
