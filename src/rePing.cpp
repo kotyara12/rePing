@@ -170,12 +170,12 @@ bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, c
   
   // Check host
   if (ret && use_ping) {
-    rlog_d(log_tag, "%s availability check...", hostname);
     bool send_notify = false;
+    rlog_d(log_tag, "%s availability check...", hostname);
     ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
     while (!ret) {
-      rlog_w(log_tag, "No access to %s, waiting...", hostname);
       if (!send_notify) {
+        rlog_w(log_tag, "No access to %s, waiting...", hostname);
         send_notify = true;
         ledSysStateSet(led_bit, false);
         #if CONFIG_TELEGRAM_ENABLE
@@ -187,14 +187,14 @@ bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, c
       ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
       if (ret) {
         rlog_d(log_tag, "Access to %s restored", hostname);
-        if (send_notify) {
-          ledSysStateClear(led_bit, false);
-          #if CONFIG_TELEGRAM_ENABLE
-            if (template_notify_ok) {
-              tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
-            };
-          #endif // CONFIG_TELEGRAM_ENABLE
-        };
+        ledSysStateClear(led_bit, false);
+        #if CONFIG_TELEGRAM_ENABLE
+          if (template_notify_ok) {
+            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
+          };
+        #endif // CONFIG_TELEGRAM_ENABLE
+      } else {
+        vTaskDelay(CONFIG_INTERNET_PING_INTERVAL_UNAVAILABLE / portTICK_PERIOD_MS);
       };
     };
   };
