@@ -171,24 +171,30 @@ bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, c
   // Check host
   if (ret && use_ping) {
     rlog_d(log_tag, "%s availability check...", hostname);
+    bool send_notify = false;
     ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
     while (!ret) {
       rlog_w(log_tag, "No access to %s, waiting...", hostname);
-      ledSysStateSet(led_bit, false);
-      #if CONFIG_TELEGRAM_ENABLE
-        if (template_notify_failed) {
-          tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_failed, hostname);
-        };
-      #endif // CONFIG_TELEGRAM_ENABLE
+      if (!send_notify) {
+        send_notify = true;
+        ledSysStateSet(led_bit, false);
+        #if CONFIG_TELEGRAM_ENABLE
+          if (template_notify_failed) {
+            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_failed, hostname);
+          };
+        #endif // CONFIG_TELEGRAM_ENABLE
+      };
       ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
       if (ret) {
         rlog_d(log_tag, "Access to %s restored", hostname);
-        ledSysStateClear(led_bit, false);
-        #if CONFIG_TELEGRAM_ENABLE
-          if (template_notify_ok) {
-            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
-          };
-        #endif // CONFIG_TELEGRAM_ENABLE
+        if (send_notify) {
+          ledSysStateClear(led_bit, false);
+          #if CONFIG_TELEGRAM_ENABLE
+            if (template_notify_ok) {
+              tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
+            };
+          #endif // CONFIG_TELEGRAM_ENABLE
+        };
       };
     };
   };
