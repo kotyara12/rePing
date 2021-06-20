@@ -24,6 +24,11 @@ typedef struct {
 } ping_result_t;
 
 ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize);
+bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, const int led_bit,
+  #if CONFIG_TELEGRAM_ENABLE
+  const char* template_notify_ok, const char* template_notify_failed, 
+  #endif // CONFIG_TELEGRAM_ENABLE
+  const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize);
 
 #ifdef __cplusplus
 }

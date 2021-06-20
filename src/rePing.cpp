@@ -1,5 +1,8 @@
 #include "rePing.h"
+#include "reWiFi.h"
 #include "rLog.h"
+#include "reLed.h"
+#include "reLedSys.h"
 #include <stdio.h>
 #include <string.h>
 #include "lwip/inet.h"
@@ -8,9 +11,13 @@
 #include "esp_ping.h"
 #include "ping/ping_sock.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "freertos/semphr.h" 
 #include "freertos/event_groups.h"
 #include "project_config.h"
+#if CONFIG_TELEGRAM_ENABLE
+#include "reTgSend.h"
+#endif // CONFIG_TELEGRAM_ENABLE
 
 static const char* tagPING = "PING";
 
@@ -141,4 +148,50 @@ ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_
   esp_ping_delete_session(ping);
 
   return result.result;
+}
+
+bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, const int led_bit,
+  #if CONFIG_TELEGRAM_ENABLE
+  const char* template_notify_ok, const char* template_notify_failed, 
+  #endif // CONFIG_TELEGRAM_ENABLE
+  const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize)
+{
+  // Check WiFi connection
+  bool ret = wifiIsConnected();
+  if (!ret) {
+    rlog_w(log_tag, "No Internet access, waiting...");
+    ledSysStateSet(led_bit, false);
+    ret = wifiWaitConnection(portMAX_DELAY);
+    if (ret) {
+      rlog_d(log_tag, "Internet access restored");
+      ledSysStateClear(led_bit, false);
+    };
+  };
+  
+  // Check host
+  if (ret && use_ping) {
+    rlog_d(log_tag, "%s availability check...", hostname);
+    ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
+    while (!ret) {
+      rlog_w(log_tag, "No access to %s, waiting...", hostname);
+      ledSysStateSet(led_bit, false);
+      #if CONFIG_TELEGRAM_ENABLE
+        if (template_notify_failed) {
+          tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_failed, hostname);
+        };
+      #endif // CONFIG_TELEGRAM_ENABLE
+      ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
+      if (ret) {
+        rlog_d(log_tag, "Access to %s restored", hostname);
+        ledSysStateClear(led_bit, false);
+        #if CONFIG_TELEGRAM_ENABLE
+          if (template_notify_ok) {
+            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
+          };
+        #endif // CONFIG_TELEGRAM_ENABLE
+      };
+    };
+  };
+
+  return ret;
 }
