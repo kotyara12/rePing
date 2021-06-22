@@ -93,25 +93,17 @@ ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_
 
   // Convert hostname to IP address
   ip_addr_t target_addr;
+  struct addrinfo hint;
+  struct addrinfo *res = NULL;
   memset(&target_addr, 0, sizeof(target_addr));
-  if (hostname) {
-    struct addrinfo hint;
-    struct addrinfo *res = NULL;
-    memset(&hint, 0, sizeof(hint));
-    if (getaddrinfo(hostname, NULL, &hint, &res) != 0) {
-      rlog_w(tagPING, "Unknown host [%s]!", hostname);
-      return result.result;
-    };
-    struct in_addr addr4 = ((struct sockaddr_in *) (res->ai_addr))->sin_addr;
-    inet_addr_to_ip4addr(ip_2_ip4(&target_addr), &addr4);
-    freeaddrinfo(res);
-  } else {
-    // If no hostname is given, use the gateway address
-    esp_netif_ip_info_t ipLocal = wifiLocalIP();
-    struct in_addr addr4;
-    addr4.s_addr = ipLocal.gw.addr;
-    inet_addr_to_ip4addr(ip_2_ip4(&target_addr), &addr4);
+  memset(&hint, 0, sizeof(hint));
+  if (getaddrinfo(hostname, NULL, &hint, &res) != 0) {
+    rlog_w(tagPING, "Unknown host [%s]!", hostname);
+    return result.result;
   };
+  struct in_addr addr4 = ((struct sockaddr_in *) (res->ai_addr))->sin_addr;
+  inet_addr_to_ip4addr(ip_2_ip4(&target_addr), &addr4);
+  freeaddrinfo(res);
 
   // Configuring ping
   esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
