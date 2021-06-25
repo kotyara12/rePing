@@ -157,11 +157,11 @@ bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, c
   const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize)
 {
   // Check WiFi connection
-  bool ret = wifiIsConnected();
+  bool ret = (wifiIsConnected() && wifiWaitConnection());
   if (!ret) {
     rlog_w(log_tag, "No Internet access, waiting...");
     ledSysStateSet(led_bit, false);
-    ret = wifiWaitConnection(portMAX_DELAY);
+    ret = wifiIsConnected() && wifiWaitConnection(portMAX_DELAY);
     if (ret) {
       rlog_d(log_tag, "Internet access restored");
       ledSysStateClear(led_bit, false);
