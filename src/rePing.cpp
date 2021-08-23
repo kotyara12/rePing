@@ -1,10 +1,7 @@
+#include "rLog.h"
 #include "rePing.h"
 #include "reWiFi.h"
-#include "rLog.h"
-#include "reLed.h"
-#include "reLedSys.h"
-#include <stdio.h>
-#include <string.h>
+#include "project_config.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
@@ -14,10 +11,6 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h" 
 #include "freertos/event_groups.h"
-#include "project_config.h"
-#if CONFIG_TELEGRAM_ENABLE
-#include "reTgSend.h"
-#endif // CONFIG_TELEGRAM_ENABLE
 
 static const char* tagPING = "PING";
 
@@ -92,24 +85,23 @@ ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_
   };
 
   // Convert hostname to IP address
-  ip_addr_t target_addr;
+  result.result.hostname = hostname;
   struct addrinfo hint;
   struct addrinfo *res = NULL;
-  memset(&target_addr, 0, sizeof(target_addr));
   memset(&hint, 0, sizeof(hint));
   if (getaddrinfo(hostname, NULL, &hint, &res) != 0) {
     rlog_w(tagPING, "Unknown host [%s]!", hostname);
     return result.result;
   };
   struct in_addr addr4 = ((struct sockaddr_in *) (res->ai_addr))->sin_addr;
-  inet_addr_to_ip4addr(ip_2_ip4(&target_addr), &addr4);
+  inet_addr_to_ip4addr(ip_2_ip4(&result.result.hostaddr), &addr4);
   freeaddrinfo(res);
 
   // Configuring ping
   esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
   ping_config.task_stack_size = CONFIG_PING_TASK_STACK_SIZE;
   ping_config.task_prio = CONFIG_PING_TASK_PRIORITY;
-  ping_config.target_addr = target_addr;
+  ping_config.target_addr = result.result.hostaddr;
   ping_config.interval_ms = interval;
   ping_config.timeout_ms = timeout;
   ping_config.data_size = datasize;
@@ -148,56 +140,4 @@ ping_result_t pingHost(const char* hostname, const uint32_t count, const uint32_
   esp_ping_delete_session(ping);
 
   return result.result;
-}
-
-bool checkHost(const char* hostname, const bool use_ping, const char* log_tag, const int led_bit,
-  #if CONFIG_TELEGRAM_ENABLE
-  const char* template_notify_ok, const char* template_notify_failed, 
-  #endif // CONFIG_TELEGRAM_ENABLE
-  const uint32_t count, const uint32_t interval, const uint32_t timeout, const uint32_t datasize)
-{
-  // Check WiFi connection
-  bool ret = (wifiIsConnected() && wifiWaitConnection(0));
-  if (!ret) {
-    rlog_w(log_tag, "No Internet access, waiting...");
-    ledSysStateSet(led_bit, false);
-    ret = wifiIsConnected() && wifiWaitConnection(portMAX_DELAY);
-    if (ret) {
-      rlog_d(log_tag, "Internet access restored");
-      ledSysStateClear(led_bit, false);
-    };
-  };
-  
-  // Check host
-  if (ret && use_ping) {
-    bool send_notify = false;
-    rlog_d(log_tag, "%s availability check...", hostname);
-    ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
-    while (!ret) {
-      if (!send_notify) {
-        rlog_w(log_tag, "No access to %s, waiting...", hostname);
-        send_notify = true;
-        ledSysStateSet(led_bit, false);
-        #if CONFIG_TELEGRAM_ENABLE
-          if (template_notify_failed) {
-            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_failed, hostname);
-          };
-        #endif // CONFIG_TELEGRAM_ENABLE
-      };
-      ret = (pingHost(hostname, count, interval, timeout, datasize).loss < 100);
-      if (ret) {
-        rlog_d(log_tag, "Access to %s restored", hostname);
-        ledSysStateClear(led_bit, false);
-        #if CONFIG_TELEGRAM_ENABLE
-          if (template_notify_ok) {
-            tgSend(true, CONFIG_TELEGRAM_DEVICE, template_notify_ok, hostname);
-          };
-        #endif // CONFIG_TELEGRAM_ENABLE
-      } else {
-        vTaskDelay(CONFIG_INTERNET_PING_INTERVAL_UNAVAILABLE / portTICK_PERIOD_MS);
-      };
-    };
-  };
-
-  return ret;
 }
