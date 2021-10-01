@@ -1,6 +1,6 @@
 # rePing for ESP32 / ESP-IDF
 
-The module for checking the Internet availability by regular ping of public servers (ESP-IDF)
+Module for checking server availability by pinging and waiting for completion. Wrapper for "esp_ping.h". (ESP-IDF)
 
 ## Dependencies:
   - https://github.com/kotyara12/rLog
