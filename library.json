@@ -1,0 +1,17 @@
+{
+  "name": "rePing",
+  "version": "1.0.0",
+  "description": "Module for checking server availability by pinging and waiting for completion. Wrapper for esp_ping.h",
+  "keywords": "ping",
+  "authors":
+  [
+    {
+      "name": "Alexander Razzhivin",
+      "email": "kotyara12@yandex.ru",
+      "url": "https://kotyara12.ru"
+    }
+  ],
+  "license": "MIT",
+  "frameworks": ["espidf"],
+  "platforms": ["espressif32"]
+}
